@@ -1,42 +1,28 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-canvas.width = 800;
-canvas.height = 500;
 
-/* ======================
-   OYUNCU
-====================== */
-let player = {
-  x: 50,
-  y: 50,
-  w: 32,
-  h: 32,
+canvas.width = 800;
+canvas.height = 450;
+
+/* ================= PLAYER ================= */
+const player = {
+  x: 50, y: 50, w: 24, h: 24,
   speed: 2,
-  hp: 100,
-  maxHp: 100
+  hp: 100, maxHp: 100,
+  level: 1, exp: 0, expToNext: 100
 };
 
-/* ======================
-   KONTROLLER
-====================== */
-let keys = {};
+/* ================= CONTROLS ================= */
+const keys = {};
 document.addEventListener("keydown", e => {
   keys[e.key.toLowerCase()] = true;
-
-  // Envanter E
-  if (e.key.toLowerCase() === "e") {
+  if (e.key.toLowerCase() === "e")
     inventoryUI.classList.toggle("hidden");
-  }
 });
+document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
-document.addEventListener("keyup", e => {
-  keys[e.key.toLowerCase()] = false;
-});
-
-/* ======================
-   ENVANTER
-====================== */
-let inventory = [];
+/* ================= INVENTORY ================= */
+const inventory = [];
 const inventoryUI = document.getElementById("inventory");
 const inventoryList = document.getElementById("inventoryList");
 
@@ -47,122 +33,110 @@ function addItem(item) {
 
 function renderInventory() {
   inventoryList.innerHTML = "";
-  inventory.forEach(i => {
+  inventory.forEach((item, i) => {
     const li = document.createElement("li");
-    li.textContent = i;
+    li.textContent = item;
+    li.onclick = () => {
+      if (item === "Potion") {
+        player.hp = Math.min(player.maxHp, player.hp + 25);
+        inventory.splice(i, 1);
+        renderInventory();
+      }
+    };
     inventoryList.appendChild(li);
   });
 }
 
-/* ======================
-   ENGELLER
-====================== */
+/* ================= MAP ================= */
 const obstacles = [
-  { x: 200, y: 100, w: 100, h: 50 },
-  { x: 400, y: 300, w: 50, h: 100 }
+  { x: 200, y: 100, w: 120, h: 40 },
+  { x: 400, y: 260, w: 60, h: 120 }
 ];
 
-function collision(a, b) {
-  return (
-    a.x < b.x + b.w &&
-    a.x + a.w > b.x &&
-    a.y < b.y + b.h &&
-    a.y + a.h > b.y
-  );
+const worldItems = [
+  { x: 300, y: 150, type: "Potion" },
+  { x: 600, y: 350, type: "Potion" }
+];
+
+/* ================= ENEMY ================= */
+const enemy = { x: 520, y: 200, w: 24, h: 24, dmg: 0.3 };
+
+/* ================= UI / SETTINGS ================= */
+document.getElementById("settingsIcon").onclick = () =>
+  document.getElementById("settingsMenu").classList.toggle("hidden");
+
+document.getElementById("restartGame").onclick = () => location.reload();
+document.getElementById("toggleTheme").onclick = () =>
+  document.body.classList.toggle("light");
+document.getElementById("exitGame").onclick = () => window.close();
+document.getElementById("checkpointBtn").onclick = () =>
+  localStorage.setItem("checkpoint", JSON.stringify(player));
+
+/* ================= HELPERS ================= */
+function collide(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x &&
+         a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
-/* ======================
-   DÜŞMAN
-====================== */
-let enemy = {
-  x: 500,
-  y: 200,
-  w: 32,
-  h: 32,
-  hp: 50
-};
+function gainExp(amount) {
+  player.exp += amount;
+  if (player.exp >= player.expToNext) {
+    player.exp -= player.expToNext;
+    player.level++;
+    player.expToNext += 50;
+  }
+}
 
-/* ======================
-   AYARLAR MENÜSÜ
-====================== */
-const settingsIcon = document.getElementById("settingsIcon");
-const settingsMenu = document.getElementById("settingsMenu");
-
-settingsIcon.onclick = () => {
-  settingsMenu.classList.toggle("hidden");
-};
-
-document.getElementById("toggleSound").onclick = () => {
-  alert("Ses Aç/Kapat (placeholder)");
-};
-
-document.getElementById("restartGame").onclick = () => {
-  location.reload();
-};
-
-document.getElementById("toggleTheme").onclick = () => {
-  document.body.classList.toggle("light");
-};
-
-document.getElementById("exitGame").onclick = () => {
-  window.close();
-};
-
-document.getElementById("checkpointBtn").onclick = () => {
-  localStorage.setItem("checkpoint", JSON.stringify(player));
-  alert("Checkpoint Kaydedildi");
-};
-
-/* ======================
-   OYUN DÖNGÜSÜ
-====================== */
+/* ================= GAME LOOP ================= */
 function update() {
-  let nextX = player.x;
-  let nextY = player.y;
+  let nx = player.x, ny = player.y;
+  if (keys.w) ny -= player.speed;
+  if (keys.s) ny += player.speed;
+  if (keys.a) nx -= player.speed;
+  if (keys.d) nx += player.speed;
 
-  if (keys["w"]) nextY -= player.speed;
-  if (keys["s"]) nextY += player.speed;
-  if (keys["a"]) nextX -= player.speed;
-  if (keys["d"]) nextX += player.speed;
-
-  let future = { x: nextX, y: nextY, w: player.w, h: player.h };
-
-  let blocked = obstacles.some(o => collision(future, o));
-  if (!blocked) {
-    player.x = nextX;
-    player.y = nextY;
+  const future = { x: nx, y: ny, w: player.w, h: player.h };
+  if (!obstacles.some(o => collide(future, o))) {
+    player.x = nx; player.y = ny;
   }
 
-  // Düşman hasarı
-  if (collision(player, enemy)) {
-    player.hp -= 0.3;
-    if (player.hp <= 0) {
-      alert("Öldün!");
-      location.reload();
+  if (collide(player, enemy)) player.hp -= enemy.dmg;
+
+  worldItems.forEach((item, i) => {
+    if (Math.abs(player.x - item.x) < 20 &&
+        Math.abs(player.y - item.y) < 20) {
+      addItem(item.type);
+      gainExp(20);
+      worldItems.splice(i, 1);
     }
-  }
+  });
 }
 
 function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#5c8a3c";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Oyuncu
-  ctx.fillStyle = "blue";
-  ctx.fillRect(player.x, player.y, player.w, player.h);
+  ctx.fillStyle = "#444";
+  obstacles.forEach(o => ctx.fillRect(o.x, o.y, o.w, o.h));
 
-  // Can barı
-  ctx.fillStyle = "red";
-  ctx.fillRect(10, 10, (player.hp / player.maxHp) * 100, 10);
+  ctx.fillStyle = "yellow";
+  worldItems.forEach(i => ctx.fillRect(i.x, i.y, 14, 14));
 
-  // Düşman
   ctx.fillStyle = "red";
   ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
 
-  // Engeller
-  ctx.fillStyle = "gray";
-  obstacles.forEach(o => {
-    ctx.fillRect(o.x, o.y, o.w, o.h);
-  });
+  ctx.fillStyle = "blue";
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+
+  // HP
+  ctx.fillStyle = "red";
+  ctx.fillRect(10, 10, (player.hp / player.maxHp) * 100, 8);
+
+  // EXP
+  ctx.fillStyle = "#00ffaa";
+  ctx.fillRect(10, 25, (player.exp / player.expToNext) * 100, 6);
+  ctx.fillStyle = "white";
+  ctx.fillText("Lv " + player.level, 120, 30);
 }
 
 function loop() {
@@ -170,12 +144,4 @@ function loop() {
   draw();
   requestAnimationFrame(loop);
 }
-
 loop();
-
-/* ======================
-   ÖRNEK LOOT (SONRA SİL)
-====================== */
-setTimeout(() => {
-  addItem("Paslı Kılıç");
-}, 5000);
