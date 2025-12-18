@@ -1,34 +1,18 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Göklerin Mirasi</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <div class="game-container">
-    <!-- Oyun Ekranı -->
-    <canvas id="gameCanvas"></canvas>
+<!-- Ayarlar İkonu -->
+<div id="settingsIcon">⚙️</div>
 
-    <!-- Envanter ve Kontroller -->
-    <div id="inventory">
-      <h3>Envanter</h3>
-      <ul id="inventoryList">
-        <li>Silah</li>
-        <li>Yemek</li>
-        <li>Para: <span id="currency">100</span></li>
-      </ul>
-    </div>
+<!-- Ayarlar Menüsü -->
+<div id="settingsMenu" class="hidden">
+  <h3>Ayarlar</h3>
+  <button id="toggleSound">🔊 Ses Aç/Kapat</button>
+  <button id="restartGame">🔄 Yeniden Başla</button>
+  <button id="toggleTheme">🌙 Dark / ☀️ Light</button>
+  <button id="checkpointBtn">💾 Checkpoint</button>
+  <button id="exitGame">🚪 Oyundan Çık</button>
+</div>
 
-    <!-- Ayarlar -->
-    <div id="settings">
-      <h3>Ayarlar</h3>
-      <button id="muteBtn">Ses Kapat</button>
-      <button id="restartBtn">Yeniden Başla</button>
-    </div>
-  </div>
-
-  <script src="game.js"></script>
-</body>
-</html>
+<!-- Envanter -->
+<div id="inventory" class="hidden">
+  <h3>Envanter (E)</h3>
+  <ul id="inventoryList"></ul>
+</div>
