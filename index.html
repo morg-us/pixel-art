@@ -1,18 +1,37 @@
-<!-- Ayarlar İkonu -->
-<div id="settingsIcon">⚙️</div>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Göklerin Mirası</title>
 
-<!-- Ayarlar Menüsü -->
-<div id="settingsMenu" class="hidden">
-  <h3>Ayarlar</h3>
-  <button id="toggleSound">🔊 Ses Aç/Kapat</button>
-  <button id="restartGame">🔄 Yeniden Başla</button>
-  <button id="toggleTheme">🌙 Dark / ☀️ Light</button>
-  <button id="checkpointBtn">💾 Checkpoint</button>
-  <button id="exitGame">🚪 Oyundan Çık</button>
-</div>
+  <!-- CSS BAĞLANTISI -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-<!-- Envanter -->
-<div id="inventory" class="hidden">
-  <h3>Envanter (E)</h3>
-  <ul id="inventoryList"></ul>
-</div>
+  <!-- OYUN ALANI -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- AYARLAR İKONU -->
+  <div id="settingsIcon">⚙️</div>
+
+  <!-- AYARLAR MENÜSÜ -->
+  <div id="settingsMenu" class="hidden">
+    <h3>Ayarlar</h3>
+    <button id="toggleSound">Ses Aç/Kapat</button>
+    <button id="restartGame">Yeniden Başla</button>
+    <button id="toggleTheme">Dark / Light</button>
+    <button id="checkpointBtn">Checkpoint</button>
+    <button id="exitGame">Çıkış</button>
+  </div>
+
+  <!-- ENVANTER -->
+  <div id="inventory" class="hidden">
+    <h3>Envanter (E)</h3>
+    <ul id="inventoryList"></ul>
+  </div>
+
+  <!-- JS BAĞLANTISI (EN ALTA!) -->
+  <script src="game.js"></script>
+</body>
+</html>
