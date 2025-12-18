@@ -1,99 +1,181 @@
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-
-// Canvas boyutları
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 canvas.width = 800;
-canvas.height = 600;
+canvas.height = 500;
 
-// Oyuncu bilgileri
+/* ======================
+   OYUNCU
+====================== */
 let player = {
-  x: 100,
-  y: 100,
-  width: 50,
-  height: 50,
-  speed: 5,
-  color: 'blue'
+  x: 50,
+  y: 50,
+  w: 32,
+  h: 32,
+  speed: 2,
+  hp: 100,
+  maxHp: 100
 };
 
-// NPC bilgileri
-let npc = {
-  x: 400,
-  y: 300,
-  width: 50,
-  height: 50,
-  color: 'green',
-  dialogue: "Merhaba, bana yardım eder misin?"
-};
+/* ======================
+   KONTROLLER
+====================== */
+let keys = {};
+document.addEventListener("keydown", e => {
+  keys[e.key.toLowerCase()] = true;
 
-// Envanter
-let inventory = ['Silah', 'Yemek', 'Para: 100'];
-
-// Ses kontrolü
-let isMuted = false;
-
-// Oyun döngüsü
-function gameLoop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height); // Ekranı temizle
-
-  // Oyuncu hareketi
-  if (keys['ArrowUp']) player.y -= player.speed;
-  if (keys['ArrowDown']) player.y += player.speed;
-  if (keys['ArrowLeft']) player.x -= player.speed;
-  if (keys['ArrowRight']) player.x += player.speed;
-
-  // NPC ile etkileşim kontrolü
-  if (checkCollision(player, npc)) {
-    showDialogue(npc.dialogue);
+  // Envanter E
+  if (e.key.toLowerCase() === "e") {
+    inventoryUI.classList.toggle("hidden");
   }
+});
 
-  // Oyuncu çizimi
-  ctx.fillStyle = player.color;
-  ctx.fillRect(player.x, player.y, player.width, player.height);
+document.addEventListener("keyup", e => {
+  keys[e.key.toLowerCase()] = false;
+});
 
-  // NPC çizimi
-  ctx.fillStyle = npc.color;
-  ctx.fillRect(npc.x, npc.y, npc.width, npc.height);
+/* ======================
+   ENVANTER
+====================== */
+let inventory = [];
+const inventoryUI = document.getElementById("inventory");
+const inventoryList = document.getElementById("inventoryList");
 
-  requestAnimationFrame(gameLoop);
+function addItem(item) {
+  inventory.push(item);
+  renderInventory();
 }
 
-// Tuş kontrolü
-let keys = {};
-document.addEventListener('keydown', (e) => {
-  keys[e.key] = true;
-});
-document.addEventListener('keyup', (e) => {
-  keys[e.key] = false;
-});
+function renderInventory() {
+  inventoryList.innerHTML = "";
+  inventory.forEach(i => {
+    const li = document.createElement("li");
+    li.textContent = i;
+    inventoryList.appendChild(li);
+  });
+}
 
-// NPC ile çarpışma kontrolü
-function checkCollision(player, npc) {
+/* ======================
+   ENGELLER
+====================== */
+const obstacles = [
+  { x: 200, y: 100, w: 100, h: 50 },
+  { x: 400, y: 300, w: 50, h: 100 }
+];
+
+function collision(a, b) {
   return (
-    player.x < npc.x + npc.width &&
-    player.x + player.width > npc.x &&
-    player.y < npc.y + npc.height &&
-    player.y + player.height > npc.y
+    a.x < b.x + b.w &&
+    a.x + a.w > b.x &&
+    a.y < b.y + b.h &&
+    a.y + a.h > b.y
   );
 }
 
-// Diyalog gösterme
-function showDialogue(message) {
-  alert(message);
+/* ======================
+   DÜŞMAN
+====================== */
+let enemy = {
+  x: 500,
+  y: 200,
+  w: 32,
+  h: 32,
+  hp: 50
+};
+
+/* ======================
+   AYARLAR MENÜSÜ
+====================== */
+const settingsIcon = document.getElementById("settingsIcon");
+const settingsMenu = document.getElementById("settingsMenu");
+
+settingsIcon.onclick = () => {
+  settingsMenu.classList.toggle("hidden");
+};
+
+document.getElementById("toggleSound").onclick = () => {
+  alert("Ses Aç/Kapat (placeholder)");
+};
+
+document.getElementById("restartGame").onclick = () => {
+  location.reload();
+};
+
+document.getElementById("toggleTheme").onclick = () => {
+  document.body.classList.toggle("light");
+};
+
+document.getElementById("exitGame").onclick = () => {
+  window.close();
+};
+
+document.getElementById("checkpointBtn").onclick = () => {
+  localStorage.setItem("checkpoint", JSON.stringify(player));
+  alert("Checkpoint Kaydedildi");
+};
+
+/* ======================
+   OYUN DÖNGÜSÜ
+====================== */
+function update() {
+  let nextX = player.x;
+  let nextY = player.y;
+
+  if (keys["w"]) nextY -= player.speed;
+  if (keys["s"]) nextY += player.speed;
+  if (keys["a"]) nextX -= player.speed;
+  if (keys["d"]) nextX += player.speed;
+
+  let future = { x: nextX, y: nextY, w: player.w, h: player.h };
+
+  let blocked = obstacles.some(o => collision(future, o));
+  if (!blocked) {
+    player.x = nextX;
+    player.y = nextY;
+  }
+
+  // Düşman hasarı
+  if (collision(player, enemy)) {
+    player.hp -= 0.3;
+    if (player.hp <= 0) {
+      alert("Öldün!");
+      location.reload();
+    }
+  }
 }
 
-// Ses açma/kapama
-document.getElementById('muteBtn').addEventListener('click', () => {
-  isMuted = !isMuted;
-  alert(isMuted ? "Ses kapalı" : "Ses açık");
-});
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-// Yeniden başlatma
-document.getElementById('restartBtn').addEventListener('click', () => {
-  player.x = 100;
-  player.y = 100;
-  inventory = ['Silah', 'Yemek', 'Para: 100'];
-  alert("Oyun yeniden başlatıldı!");
-});
+  // Oyuncu
+  ctx.fillStyle = "blue";
+  ctx.fillRect(player.x, player.y, player.w, player.h);
 
-// Oyun başlat
-gameLoop();
+  // Can barı
+  ctx.fillStyle = "red";
+  ctx.fillRect(10, 10, (player.hp / player.maxHp) * 100, 10);
+
+  // Düşman
+  ctx.fillStyle = "red";
+  ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
+
+  // Engeller
+  ctx.fillStyle = "gray";
+  obstacles.forEach(o => {
+    ctx.fillRect(o.x, o.y, o.w, o.h);
+  });
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+
+/* ======================
+   ÖRNEK LOOT (SONRA SİL)
+====================== */
+setTimeout(() => {
+  addItem("Paslı Kılıç");
+}, 5000);
