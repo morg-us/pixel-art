@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Göklerin Mirasi</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="game-container">
+    <!-- Oyun Ekranı -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Envanter ve Kontroller -->
+    <div id="inventory">
+      <h3>Envanter</h3>
+      <ul id="inventoryList">
+        <li>Silah</li>
+        <li>Yemek</li>
+        <li>Para: <span id="currency">100</span></li>
+      </ul>
+    </div>
+
+    <!-- Ayarlar -->
+    <div id="settings">
+      <h3>Ayarlar</h3>
+      <button id="muteBtn">Ses Kapat</button>
+      <button id="restartBtn">Yeniden Başla</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
