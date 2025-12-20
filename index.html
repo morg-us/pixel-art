@@ -1,31 +1,211 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <title>Göklerin Mirası</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Göklerin Mirası - Web Prototip</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+        canvas { display: block; }
+        
+        /* Kullanıcı Arayüzü (UI) */
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; color: white;
+        }
+        
+        #health-bar-container {
+            position: absolute; bottom: 20px; left: 20px;
+            width: 200px; height: 20px; background: rgba(0,0,0,0.5); border: 2px solid #fff;
+        }
+        #health-bar { width: 100%; height: 100%; background: #ff4444; transition: width 0.3s; }
+
+        #inventory {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 400px; height: 300px; background: rgba(0,0,0,0.85);
+            border: 3px solid #ffd700; display: none; pointer-events: auto; padding: 20px;
+        }
+
+        #mini-map {
+            position: absolute; top: 20px; right: 20px;
+            width: 150px; height: 150px; background: rgba(0,0,0,0.5);
+            border: 2px solid #fff; border-radius: 50%;
+        }
+
+        #crosshair {
+            position: absolute; top: 50%; left: 50%;
+            width: 10px; height: 10px; background: rgba(255,255,255,0.5);
+            border-radius: 50%; transform: translate(-50%, -50%);
+        }
+
+        #dialog-box {
+            position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
+            width: 60%; background: rgba(0,0,0,0.8); padding: 20px;
+            border-top: 4px solid #00aaff; display: none; text-align: center;
+        }
+    </style>
 </head>
 <body>
 
-<canvas id="gameCanvas"></canvas>
-
-<!-- Ayarlar -->
-<div id="settingsIcon">⚙</div>
-<div id="settingsMenu" class="hidden">
-  <h3>Ayarlar</h3>
-  <button id="toggleSound">Ses Aç / Kapat</button>
-  <button id="toggleTheme">Dark / Light</button>
-  <button id="checkpointBtn">Checkpoint</button>
-  <button id="restartGame">Yeniden Başla</button>
-  <button id="exitGame">Çıkış</button>
+<div id="ui-layer">
+    <div id="crosshair"></div>
+    <div id="health-bar-container"><div id="health-bar"></div><div style="position:absolute; top:0; width:100%; text-align:center; font-size:12px;">CAN</div></div>
+    <div id="mini-map"></div>
+    <div id="inventory">
+        <h2 style="text-align:center; color:#ffd700;">ENVANTER (E)</h2>
+        <hr>
+        <div id="inv-items">Elma (Can yeniler), Eski Anahtar</div>
+    </div>
+    <div id="dialog-box">
+        <b id="npc-name">NPC İsmi</b><br>
+        <p id="npc-text">Merhaba yabancı! Göklerin mirasını aramaya mı geldin?</p>
+    </div>
 </div>
 
-<!-- Envanter -->
-<div id="inventory" class="hidden">
-  <h3>Envanter (E)</h3>
-  <ul id="inventoryList"></ul>
-</div>
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+</script>
 
-<script src="game.js"></script>
+<script type="module">
+    import * as THREE from 'three';
+    import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+    // --- SAHNE KURULUMU ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb); // Gündüz gökyüzü
+    scene.fog = new THREE.FogExp2(0x87ceeb, 0.015);
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    // --- IŞIKLANDIRMA (Gece-Gündüz Döngüsü İçin) ---
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.5); 
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+    sunLight.position.set(50, 100, 50);
+    sunLight.castShadow = true;
+    scene.add(sunLight);
+
+    // --- ZEMİN VE EVLER ---
+    const textureLoader = new THREE.TextureLoader();
+    const floorGeo = new THREE.PlaneGeometry(1000, 1000);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x3a5f0b });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // Basit Ev Tasarımı (Kutu şeklinde)
+    function createHouse(x, z) {
+        const houseGroup = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.BoxGeometry(5, 4, 5), new THREE.MeshStandardMaterial({ color: 0x8b4513 }));
+        body.position.y = 2;
+        body.castShadow = true;
+        
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(4, 3, 4), new THREE.MeshStandardMaterial({ color: 0x333333 }));
+        roof.position.y = 5.5;
+        roof.rotation.y = Math.PI / 4;
+        
+        houseGroup.add(body, roof);
+        houseGroup.position.set(x, 0, z);
+        scene.add(houseGroup);
+    }
+    for(let i=0; i<10; i++) createHouse(Math.random()*100-50, Math.random()*100-50);
+
+    // --- KARAKTER KONTROLÜ ---
+    const controls = new PointerLockControls(camera, document.body);
+    document.addEventListener('click', () => controls.lock());
+
+    let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+    let velocity = new THREE.Vector3();
+    let direction = new THREE.Vector3();
+    let zoomAmount = 5;
+
+    document.addEventListener('keydown', (e) => {
+        if(e.code === 'KeyW') moveForward = true;
+        if(e.code === 'KeyS') moveBackward = true;
+        if(e.code === 'KeyA') moveLeft = true;
+        if(e.code === 'KeyD') moveRight = true;
+        if(e.code === 'KeyE') toggleInventory();
+    });
+    document.addEventListener('keyup', (e) => {
+        if(e.code === 'KeyW') moveForward = false;
+        if(e.code === 'KeyS') moveBackward = false;
+        if(e.code === 'KeyA') moveLeft = false;
+        if(e.code === 'KeyD') moveRight = false;
+    });
+
+    // Zoom Mekaniği
+    document.addEventListener('wheel', (e) => {
+        zoomAmount += e.deltaY * 0.01;
+        zoomAmount = Math.max(2, Math.min(10, zoomAmount));
+        camera.position.z = zoomAmount; // Basit zoom simülasyonu
+    });
+
+    // --- SİSTEMLER (Gece/Gündüz, UI) ---
+    let time = 0;
+    function toggleInventory() {
+        const inv = document.getElementById('inventory');
+        inv.style.display = inv.style.display === 'none' ? 'block' : 'none';
+        if(inv.style.display === 'block') controls.unlock();
+    }
+
+    // --- ANA OYUN DÖNGÜSÜ ---
+    const clock = new THREE.Clock();
+    function animate() {
+        requestAnimationFrame(animate);
+        const delta = clock.getDelta();
+
+        if (controls.isLocked) {
+            velocity.x -= velocity.x * 10.0 * delta;
+            velocity.z -= velocity.z * 10.0 * delta;
+
+            direction.z = Number(moveForward) - Number(moveBackward);
+            direction.x = Number(moveRight) - Number(moveLeft);
+            direction.normalize();
+
+            if (moveForward || moveBackward) velocity.z -= direction.z * 50.0 * delta; // Yavaş yürüyüş
+            if (moveLeft || moveRight) velocity.x -= direction.x * 50.0 * delta;
+
+            controls.moveRight(-velocity.x * delta);
+            controls.moveForward(-velocity.z * delta);
+        }
+
+        // Gece-Gündüz Döngüsü (Hızlandırılmış: 1 dakika gerçek dünyada tam döngü)
+        time += delta * 0.1;
+        const sunPos = Math.sin(time);
+        sunLight.position.y = sunPos * 100;
+        sunLight.intensity = Math.max(0, sunPos);
+        
+        if(sunPos < 0) {
+            scene.background.setHex(0x050515); // Gece
+            scene.fog.color.setHex(0x050515);
+        } else {
+            scene.background.setHex(0x87ceeb); // Gündüz
+            scene.fog.color.setHex(0x87ceeb);
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // Pencere Boyutu Ayarı
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+</script>
 </body>
 </html>
