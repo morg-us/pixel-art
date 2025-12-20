@@ -3,57 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Göklerin Mirası - Prototip V2</title>
+    <title>Göklerin Mirası - Genişletilmiş Evren</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #000; }
+        body { margin: 0; overflow: hidden; font-family: 'Cinzel', serif; background-color: #000; cursor: crosshair; }
         canvas { display: block; }
 
-        /* Arayüz Elemanları */
+        /* UI Panelleri */
         #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; color: white; }
         
-        /* Can Barı */
-        #health-container { position: absolute; bottom: 30px; left: 30px; width: 250px; height: 25px; background: rgba(0,0,0,0.6); border: 2px solid #fff; }
-        #health-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #ff4b2b, #ff416c); transition: width 0.3s; }
+        /* Diyalog Penceresi */
+        #dialog-container {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            width: 70%; background: rgba(10, 10, 15, 0.9); border: 2px solid #daa520;
+            padding: 20px; border-radius: 10px; display: none; pointer-events: auto;
+            box-shadow: 0 0 20px rgba(218, 165, 32, 0.3);
+        }
+        #npc-name { color: #daa520; font-size: 20px; font-weight: bold; margin-bottom: 5px; }
+        #npc-text { font-size: 18px; line-height: 1.5; color: #ececec; }
 
-        /* Mini Map */
-        #mini-map { position: absolute; top: 20px; right: 20px; width: 160px; height: 160px; background: rgba(0,0,0,0.5); border: 3px solid #ffd700; border-radius: 50%; overflow: hidden; }
-        #player-dot { position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); }
+        /* Görev Bildirimi */
+        #interaction-prompt {
+            position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 5px;
+            font-size: 14px; display: none; border: 1px solid #fff;
+        }
 
-        /* Envanter */
-        #inventory { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 450px; height: 350px; background: rgba(20,20,20,0.95); border: 2px solid #00d2ff; display: none; pointer-events: auto; padding: 20px; border-radius: 15px; }
-        .item-slot { display: inline-block; width: 70px; height: 70px; background: rgba(255,255,255,0.1); margin: 5px; border-radius: 10px; text-align: center; line-height: 70px; font-size: 12px; }
-
-        /* Dialog ve Mesajlar */
-        #msg { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); padding: 10px 30px; border-radius: 20px; font-size: 18px; display: none; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: white; border-radius: 50%; transform: translate(-50%, -50%); opacity: 0.5; }
-
-        /* Saat Göstergesi */
-        #clock { position: absolute; top: 20px; left: 20px; font-size: 24px; font-weight: bold; text-shadow: 2px 2px 4px #000; }
+        #health-container { position: absolute; bottom: 30px; left: 30px; width: 200px; height: 15px; background: #222; border: 1px solid #fff; }
+        #health-bar { width: 100%; height: 100%; background: #c0392b; }
+        
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background: white; border-radius: 50%; transform: translate(-50%, -50%); opacity: 0.8; }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
 <div id="ui">
-    <div id="clock">Saat: 12:00</div>
     <div id="crosshair"></div>
-    <div id="msg">Etkileşim için [F] tuşuna bas</div>
+    <div id="interaction-prompt">[F] Etkileşime Geç</div>
     
-    <div id="mini-map"><div id="player-dot"></div></div>
-
-    <div id="health-container">
-        <div id="health-bar"></div>
-        <div style="position:absolute; top:0; width:100%; text-align:center; font-size:14px; font-weight:bold;">YAŞAM ENERJİSİ</div>
+    <div id="dialog-container">
+        <div id="npc-name">İsim</div>
+        <div id="npc-text">Diyalog içeriği...</div>
+        <div style="font-size: 10px; color: #888; margin-top: 10px;">Kapatmak için [F] bas</div>
     </div>
 
-    <div id="inventory">
-        <h2 style="margin-top:0; color:#00d2ff;">Göklerin Envanteri</h2>
-        <hr border="1" color="#333">
-        <div class="item-slot">🍎 Elma</div>
-        <div class="item-slot">🗡️ Kılıç</div>
-        <div class="item-slot">🗝️ Anahtar</div>
-        <p style="font-size: 12px; color: #aaa;">Yemek yemek için tıkla (Simülasyon)</p>
-        <button onclick="toggleInventory()" style="margin-top: 50px; width: 100%; padding: 10px; cursor: pointer;">Kapat</button>
-    </div>
+    <div id="health-container"><div id="health-bar"></div></div>
 </div>
 
 <script type="importmap">
@@ -69,196 +63,193 @@
     import * as THREE from 'three';
     import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-    // --- TEMEL AYARLAR ---
+    // --- SAHNE VE AYARLAR ---
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
 
-    // --- DÜNYA VE GÖRSEL KALİTE ---
     scene.background = new THREE.Color(0x87ceeb);
-    scene.fog = new THREE.FogExp2(0x87ceeb, 0.002);
+    scene.fog = new THREE.FogExp2(0x87ceeb, 0.005);
 
+    // Işıklar
+    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambient);
+
+    const sun = new THREE.DirectionalLight(0xfff5e1, 1.2);
+    sun.position.set(50, 100, 50);
+    sun.castShadow = true;
+    sun.shadow.mapSize.width = 2048;
+    sun.shadow.mapSize.height = 2048;
+    scene.add(sun);
+
+    // --- MODEL OLUŞTURUCULAR ---
+
+    // 1. Detaylı Ev Oluşturucu
+    function createDetailedHouse(x, z, color = 0x8b4513) {
+        const house = new THREE.Group();
+
+        // Duvarlar
+        const body = new THREE.Mesh(new THREE.BoxGeometry(10, 8, 10), new THREE.MeshStandardMaterial({ color: color }));
+        body.position.y = 4;
+        body.castShadow = true;
+        body.receiveShadow = true;
+        house.add(body);
+
+        // Çatı (Daha gerçekçi üçgen prizma)
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(8.5, 6, 4), new THREE.MeshStandardMaterial({ color: 0x3e2723 }));
+        roof.position.y = 11;
+        roof.rotation.y = Math.PI / 4;
+        house.add(roof);
+
+        // Kapı
+        const door = new THREE.Mesh(new THREE.BoxGeometry(2, 4, 0.5), new THREE.MeshStandardMaterial({ color: 0x2e1a0a }));
+        door.position.set(0, 2, 5.1);
+        house.add(door);
+
+        // Pencereler
+        const winGeo = new THREE.BoxGeometry(1.5, 1.5, 0.2);
+        const winMat = new THREE.MeshStandardMaterial({ color: 0xadd8e6, emissive: 0x222222 });
+        const win1 = new THREE.Mesh(winGeo, winMat); win1.position.set(-2.5, 5, 5.1); house.add(win1);
+        const win2 = new THREE.Mesh(winGeo, winMat); win2.position.set(2.5, 5, 5.1); house.add(win2);
+
+        house.position.set(x, 0, z);
+        scene.add(house);
+    }
+
+    // 2. İnsansı NPC Oluşturucu
+    function createHumanoidNPC(x, z, name, dialog, color = 0x3498db) {
+        const npc = new THREE.Group();
+        
+        // Gövde
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.5), new THREE.MeshStandardMaterial({ color: color }));
+        body.position.y = 1.2;
+        npc.add(body);
+
+        // Kafa
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshStandardMaterial({ color: 0xffdbac }));
+        head.position.y = 2.1;
+        npc.add(head);
+
+        // Kollar
+        const armGeo = new THREE.BoxGeometry(0.3, 1, 0.3);
+        const armL = new THREE.Mesh(armGeo, body.material); armL.position.set(-0.6, 1.2, 0); npc.add(armL);
+        const armR = new THREE.Mesh(armGeo, body.material); armR.position.set(0.6, 1.2, 0); npc.add(armR);
+
+        npc.position.set(x, 0, z);
+        npc.userData = { name, dialog, type: 'npc' };
+        scene.add(npc);
+        return npc;
+    }
+
+    // --- DÜNYA OLUŞTURMA ---
     // Zemin
-    const floorGeo = new THREE.PlaneGeometry(2000, 2000);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x2d4c1e, roughness: 0.8 });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshStandardMaterial({ color: 0x3a5f0b }));
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Işıklandırma
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(ambientLight);
-
-    const sun = new THREE.DirectionalLight(0xffffff, 1.2);
-    sun.position.set(100, 200, 100);
-    sun.castShadow = true;
-    sun.shadow.camera.left = -200;
-    sun.shadow.camera.right = 200;
-    sun.shadow.camera.top = 200;
-    sun.shadow.camera.bottom = -200;
-    scene.add(sun);
-
-    // --- NESNELER (EVLER, NPC, YATAK) ---
-    function createStructure(x, z, type) {
-        const group = new THREE.Group();
-        
-        // Ev Gövdesi
-        const body = new THREE.Mesh(new THREE.BoxGeometry(8, 6, 8), new THREE.MeshStandardMaterial({ color: 0x5d4037 }));
-        body.position.y = 3;
-        body.castShadow = true;
-        group.add(body);
-
-        // Çatı
-        const roof = new THREE.Mesh(new THREE.ConeGeometry(7, 4, 4), new THREE.MeshStandardMaterial({ color: 0x3e2723 }));
-        roof.position.y = 8;
-        roof.rotation.y = Math.PI / 4;
-        group.add(roof);
-
-        // Yatak (Eğer içindeyse)
-        if(type === 'home') {
-            const bed = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 4), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-            bed.position.set(2, 0.5, 2);
-            group.add(bed);
+    // Köyü Oluştur
+    for(let i=0; i<15; i++) {
+        const rx = (Math.random() - 0.5) * 150;
+        const rz = (Math.random() - 0.5) * 150;
+        // Evlerin üst üste binmemesi için basit kontrol
+        if(Math.abs(rx) > 10 || Math.abs(rz) > 10) {
+            createDetailedHouse(rx, rz, Math.random() > 0.5 ? 0x8b4513 : 0x7a6a5a);
         }
-
-        group.position.set(x, 0, z);
-        scene.add(group);
     }
 
-    // Evler ve NPC
-    createStructure(20, -20, 'home');
-    createStructure(-30, -50, 'storage');
+    // NPC'leri Yerleştir
+    const npcs = [
+        createHumanoidNPC(5, -5, "Köy Muhtarı", "Göklerin mirası tehlikede evlat. Eski tapınağa gitmelisin.", 0x2ecc71),
+        createHumanoidNPC(-10, -15, "Demirci", "Kılıcın keskin, yüreğin pek olsun. Henüz yeni silahlar yapamıyorum.", 0xe67e22),
+        createHumanoidNPC(20, 10, "Gezgin", "Geceleri ormanda tuhaf ışıklar gördüğümü yemin edebilirim!", 0x9b59b6)
+    ];
 
-    const npc = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 1, 4, 8), new THREE.MeshStandardMaterial({ color: 0x00ffcc }));
-    npc.position.set(10, 1, -10);
-    scene.add(npc);
-
-    // --- KONTROLLER ---
+    // --- KONTROLLER VE ETKİLEŞİM ---
     const controls = new PointerLockControls(camera, document.body);
-    document.addEventListener('click', () => { if(document.getElementById('inventory').style.display !== 'block') controls.lock(); });
+    document.addEventListener('click', () => {
+        if(document.getElementById('dialog-container').style.display !== 'block') controls.lock();
+    });
 
-    let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-    let velocity = new THREE.Vector3();
-    let direction = new THREE.Vector3();
-    let health = 100;
-    let isNight = false;
-    let dayTime = 0; // 0 to 1200 (20 minutes)
-
+    let moveF = false, moveB = false, moveL = false, moveR = false;
     document.addEventListener('keydown', (e) => {
-        switch(e.code) {
-            case 'KeyW': moveForward = true; break;
-            case 'KeyS': moveBackward = true; break;
-            case 'KeyA': moveLeft = true; break;
-            case 'KeyD': moveRight = true; break;
-            case 'KeyE': toggleInventory(); break;
-            case 'KeyF': interact(); break;
-        }
+        if(e.code === 'KeyW') moveF = true; if(e.code === 'KeyS') moveB = true;
+        if(e.code === 'KeyA') moveL = true; if(e.code === 'KeyD') moveR = true;
+        if(e.code === 'KeyF') tryInteract();
     });
-
     document.addEventListener('keyup', (e) => {
-        switch(e.code) {
-            case 'KeyW': moveForward = false; break;
-            case 'KeyS': moveBackward = false; break;
-            case 'KeyA': moveLeft = false; break;
-            case 'KeyD': moveRight = false; break;
-        }
+        if(e.code === 'KeyW') moveF = false; if(e.code === 'KeyS') moveB = false;
+        if(e.code === 'KeyA') moveL = false; if(e.code === 'KeyD') moveR = false;
     });
 
-    // Zoom
-    let zoomLevel = 5;
+    // Zoom Mekaniği (FOV ile)
+    let targetFOV = 75;
     document.addEventListener('wheel', (e) => {
-        zoomLevel += e.deltaY * 0.01;
-        zoomLevel = Math.max(1, Math.min(10, zoomLevel));
-        camera.fov = 75 + zoomLevel; 
-        camera.updateProjectionMatrix();
+        targetFOV += e.deltaY * 0.05;
+        targetFOV = Math.max(30, Math.min(90, targetFOV));
     });
 
-    function toggleInventory() {
-        const inv = document.getElementById('inventory');
-        if (inv.style.display === 'none' || inv.style.display === '') {
-            inv.style.display = 'block';
-            controls.unlock();
-        } else {
-            inv.style.display = 'none';
+    function tryInteract() {
+        if(document.getElementById('dialog-container').style.display === 'block') {
+            document.getElementById('dialog-container').style.display = 'none';
             controls.lock();
+            return;
         }
+
+        npcs.forEach(npc => {
+            if(camera.position.distanceTo(npc.position) < 5) {
+                showDialog(npc.userData.name, npc.userData.dialog);
+                controls.unlock();
+            }
+        });
     }
 
-    function interact() {
-        // NPC veya Yatak ile mesafe kontrolü (Basitleştirilmiş)
-        const distToNPC = camera.position.distanceTo(npc.position);
-        if(distToNPC < 5) {
-            alert("Büyük Bilge: Göklerin mirasını arıyorsan, gece çöktüğünde uyanık kalmalısın!");
-        }
-        
-        // Ev içindeki yatak simülasyonu
-        if(camera.position.x > 18 && camera.position.x < 25 && camera.position.z < -18) {
-            alert("Uyudun ve sabah oldu...");
-            dayTime = 0; // Zamanı sıfırla (Sabah yap)
-        }
+    function showDialog(name, text) {
+        document.getElementById('npc-name').innerText = name;
+        document.getElementById('npc-text').innerText = text;
+        document.getElementById('dialog-container').style.display = 'block';
     }
 
     // --- OYUN DÖNGÜSÜ ---
+    const velocity = new THREE.Vector3();
     const clock = new THREE.Clock();
-    
+
     function animate() {
         requestAnimationFrame(animate);
         const delta = clock.getDelta();
 
         if (controls.isLocked) {
+            // Hareket Yumuşatma
             velocity.x -= velocity.x * 10.0 * delta;
             velocity.z -= velocity.z * 10.0 * delta;
 
-            direction.z = Number(moveForward) - Number(moveBackward);
-            direction.x = Number(moveRight) - Number(moveLeft);
-            direction.normalize();
-
-            if (moveForward || moveBackward) velocity.z -= direction.z * 60.0 * delta;
-            if (moveLeft || moveRight) velocity.x -= direction.x * 60.0 * delta;
+            if (moveF) velocity.z -= 40.0 * delta;
+            if (moveB) velocity.z += 40.0 * delta;
+            if (moveL) velocity.x -= 40.0 * delta;
+            if (moveR) velocity.x += 40.0 * delta;
 
             controls.moveRight(-velocity.x * delta);
             controls.moveForward(-velocity.z * delta);
-            
-            // Yerçekimi ve Zemin Koruması
-            camera.position.y = 1.7; 
+            camera.position.y = 1.7; // Sabit boy seviyesi (Zemine girmeyi önler)
         }
 
-        // Gece-Gündüz Döngüsü (20 Dakika Ayarı)
-        dayTime += delta;
-        const cycleSeconds = 1200; // 20 dakika
-        const progress = (dayTime % cycleSeconds) / cycleSeconds;
-        
-        // Güneş Hareketi
-        const angle = progress * Math.PI * 2;
-        sun.position.y = Math.sin(angle) * 200;
-        sun.position.x = Math.cos(angle) * 200;
-        sun.intensity = Math.max(0, Math.sin(angle) * 1.5);
+        // Yakınlık Kontrolü (Interaction Prompt)
+        let nearNPC = false;
+        npcs.forEach(npc => {
+            if(camera.position.distanceTo(npc.position) < 5) nearNPC = true;
+        });
+        document.getElementById('interaction-prompt').style.display = nearNPC ? 'block' : 'none';
 
-        // Gökyüzü Rengi
-        if(Math.sin(angle) < 0) {
-            scene.background.setHex(0x020205);
-            scene.fog.color.setHex(0x020205);
-            document.getElementById('clock').innerText = "Gece";
-        } else {
-            scene.background.setHex(0x87ceeb);
-            scene.fog.color.setHex(0x87ceeb);
-            document.getElementById('clock').innerText = "Gündüz";
-        }
-
-        // Can Barı Simülasyonu (Acıkma)
-        if(health > 0) {
-            health -= 0.01 * delta;
-            document.getElementById('health-bar').style.width = health + "%";
-        }
+        // Zoom Yumuşatma
+        camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, 0.1);
+        camera.updateProjectionMatrix();
 
         renderer.render(scene, camera);
     }
-
     animate();
 
     window.addEventListener('resize', () => {
@@ -266,6 +257,7 @@
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
+
 </script>
 </body>
 </html>
